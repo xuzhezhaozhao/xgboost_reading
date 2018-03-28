@@ -170,13 +170,19 @@ DMatrix* DMatrix::Load(const std::string& uri,
   } else {
     fname = uri;
   }
+  std::cout << "cache_file: " << cache_file << std::endl;
+  std::cout << "fname: " << fname << std::endl;
   int partid = 0, npart = 1;
+  std::cout << "load_row_split: " << load_row_split << std::endl;
+  std::cout << "file format: " << file_format << std::endl;
   if (load_row_split) {
     partid = rabit::GetRank();
     npart = rabit::GetWorldSize();
   } else {
     // test option to load in part
     npart = dmlc::GetEnv("XGBOOST_TEST_NPART", 1);
+    std::cout << "partid: " << partid << std::endl;
+    std::cout << "npart: " << npart << std::endl;
   }
 
   if (npart != 1) {
@@ -191,6 +197,7 @@ DMatrix* DMatrix::Load(const std::string& uri,
       common::PeekableInStream is(fi.get());
       if (is.PeekRead(&magic, sizeof(magic)) == sizeof(magic) &&
           magic == data::SimpleCSRSource::kMagic) {
+        std::cout << "load binary file" << std::endl;
         std::unique_ptr<data::SimpleCSRSource> source(new data::SimpleCSRSource());
         source->LoadBinary(&is);
         DMatrix* dmat = DMatrix::Create(std::move(source), cache_file);
@@ -203,6 +210,7 @@ DMatrix* DMatrix::Load(const std::string& uri,
     }
   }
 
+  std::cout << "load text file" << std::endl;
   std::unique_ptr<dmlc::Parser<uint32_t> > parser(
       dmlc::Parser<uint32_t>::Create(fname.c_str(), partid, npart, file_format.c_str()));
   DMatrix* dmat = DMatrix::Create(parser.get(), cache_file);
@@ -211,9 +219,10 @@ DMatrix* DMatrix::Load(const std::string& uri,
                  << dmat->info().num_nonzero << " entries loaded from " << uri;
   }
   /* sync up number of features after matrix loaded.
-   * partitioned data will fail the train/val validation check 
+   * partitioned data will fail the train/val validation check
    * since partitioned data not knowing the real number of features. */
   rabit::Allreduce<rabit::op::Max>(&dmat->info().num_col, 1);
+  std::cout << "dmat->info().num_col = " << dmat->info().num_col << std::endl;
   // backward compatiblity code.
   if (!load_row_split) {
     MetaInfo& info = dmat->info();
@@ -236,6 +245,7 @@ DMatrix* DMatrix::Load(const std::string& uri,
 DMatrix* DMatrix::Create(dmlc::Parser<uint32_t>* parser,
                          const std::string& cache_prefix) {
   if (cache_prefix.length() == 0) {
+    std::cout << "create simple csr source" << std::endl;
     std::unique_ptr<data::SimpleCSRSource> source(new data::SimpleCSRSource());
     source->CopyFrom(parser);
     return DMatrix::Create(std::move(source), cache_prefix);
