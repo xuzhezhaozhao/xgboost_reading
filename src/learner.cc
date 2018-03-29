@@ -522,6 +522,7 @@ class LearnerImpl : public Learner {
     if (this->ModelInitialized()) return;
     // estimate feature bound
     unsigned num_feature = 0;
+    std::cout << "cache_.size() = " << cache_.size() << std::endl;
     for (size_t i = 0; i < cache_.size(); ++i) {
       CHECK(cache_[i] != nullptr);
       num_feature = std::max(num_feature,

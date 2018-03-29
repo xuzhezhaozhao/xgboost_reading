@@ -32,7 +32,9 @@ struct RegLossParam : public dmlc::Parameter<RegLossParam> {
 template <typename Loss>
 class RegLossObj : public ObjFunction {
  public:
-  RegLossObj() : labels_checked(false) {}
+   RegLossObj() : labels_checked(false) {
+     std::cout << "construct reg loss obj" << std::endl;
+   }
 
   void Configure(
       const std::vector<std::pair<std::string, std::string> > &args) override {
@@ -45,6 +47,10 @@ class RegLossObj : public ObjFunction {
         << "labels are not correctly provided"
         << "preds.size=" << preds->size()
         << ", label.size=" << info.labels.size();
+
+    std::cout << "info.labels().size() = " << info.labels.size() << std::endl;
+    std::cout << "preds->size() = " << preds->size() << std::endl;
+
     auto& preds_h = preds->data_h();
 
     this->LazyCheckLabels(info.labels);

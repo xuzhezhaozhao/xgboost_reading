@@ -168,7 +168,9 @@ class LambdaRankObj : public ObjFunction {
 class PairwiseRankObj: public LambdaRankObj{
  protected:
   void GetLambdaWeight(const std::vector<ListEntry> &sorted_list,
-                       std::vector<LambdaPair> *io_pairs) override {}
+      std::vector<LambdaPair> *io_pairs) override {
+    std::cout << "construct pair wise rank obj" << std::endl;
+  }
 };
 
 // beta version: NDCG lambda rank

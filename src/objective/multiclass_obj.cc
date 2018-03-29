@@ -31,6 +31,7 @@ class SoftmaxMultiClassObj : public ObjFunction {
  public:
   explicit SoftmaxMultiClassObj(bool output_prob)
       : output_prob_(output_prob) {
+     std::cout << "construct softmax multi class obj" << std::endl;
   }
   void Configure(const std::vector<std::pair<std::string, std::string> >& args) override {
     param_.InitAllowUnknown(args);
