@@ -167,7 +167,10 @@ void CLITrain(const CLIParam& param) {
   std::vector<std::shared_ptr<DMatrix> > cache_mats;
   std::vector<DMatrix*> eval_datasets;
   cache_mats.push_back(dtrain);
+  std::cout << "eval_data_names.size() = " << param.eval_data_names.size() << std::endl;
   for (size_t i = 0; i < param.eval_data_names.size(); ++i) {
+    std::cout << "eval data name: " << param.eval_data_names[i] << std::endl;
+    std::cout << "eval data path: " << param.eval_data_paths[i] << std::endl;
     deval.emplace_back(
         std::shared_ptr<DMatrix>(DMatrix::Load(param.eval_data_paths[i],
                                                param.silent != 0, param.dsplit == 2)));
@@ -199,8 +202,11 @@ void CLITrain(const CLIParam& param) {
   }
   // start training.
   const double start = dmlc::GetTime();
+  std::cout << "version: " << version << std::endl;
+  std::cout << "num_round: " << param.num_round << std::endl;
   for (int i = version / 2; i < param.num_round; ++i) {
     double elapsed = dmlc::GetTime() - start;
+    std::cout << "version: " << version << std::endl;
     if (version % 2 == 0) {
       if (param.silent == 0) {
         LOG(CONSOLE) << "boosting round " << i << ", " << elapsed << " sec elapsed";

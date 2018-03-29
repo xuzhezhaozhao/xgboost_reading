@@ -357,6 +357,7 @@ class LearnerImpl : public Learner {
     monitor.Start("UpdateOneIter");
     CHECK(ModelInitialized())
         << "Always call InitModel or LoadModel before update";
+    std::cout << "IsDistributed: " << rabit::IsDistributed() << std::endl;
     if (tparam.seed_per_iteration || rabit::IsDistributed()) {
       common::GlobalRandom().seed(tparam.seed * kRandSeedMagic + iter);
     }
@@ -471,6 +472,7 @@ class LearnerImpl : public Learner {
 
     monitor.Start("LazyInitDMatrix");
     if (!p_train->HaveColAccess(true)) {
+      std::cout << "do not have col access, init ..." << std::endl;
       int ncol = static_cast<int>(p_train->info().num_col);
       std::vector<bool> enabled(ncol, true);
       // set max row per batch to limited value
