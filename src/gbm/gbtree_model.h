@@ -69,7 +69,9 @@ struct GBTreeModel {
   }
 
   void InitTreesToUpdate() {
+    std::cout << "trees_to_update.size() = " << trees_to_update.size() << std::endl;
     if (trees_to_update.size() == 0u) {
+      std::cout << "trees.size() = " << trees.size() << std::endl;
       for (size_t i = 0; i < trees.size(); ++i) {
         trees_to_update.push_back(std::move(trees[i]));
       }
