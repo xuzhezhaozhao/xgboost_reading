@@ -189,6 +189,7 @@ class GBTree : public GradientBooster {
     std::vector<std::vector<std::unique_ptr<RegTree> > > new_trees;
     const int ngroup = model_.param.num_output_group;
     monitor.Start("BoostNewTrees");
+    std::cout << "DoBoost::ngroup = " << ngroup << std::endl;
     if (ngroup == 1) {
       std::vector<std::unique_ptr<RegTree> > ret;
       BoostNewTrees(in_gpair, p_fmat, 0, &ret);
@@ -280,6 +281,7 @@ class GBTree : public GradientBooster {
     std::vector<RegTree*> new_trees;
     ret->clear();
     // create the trees
+    std::cout << "BoostNewTrees::num_parallel_tree = " << tparam.num_parallel_tree << std::endl;
     for (int i = 0; i < tparam.num_parallel_tree; ++i) {
       if (tparam.process_type == kDefault) {
         // create new tree
