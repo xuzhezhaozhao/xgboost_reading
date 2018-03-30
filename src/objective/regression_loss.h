@@ -66,6 +66,7 @@ struct LogisticRegression {
   static const char* LabelErrorMsg() {
     return "label must be in [0,1] for logistic regression";
   }
+  // 标准差
   static const char* DefaultEvalMetric() { return "rmse"; }
 };
 

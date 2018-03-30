@@ -90,6 +90,7 @@ class RegLossObj : public ObjFunction {
   const char *DefaultEvalMetric() const override {
     return Loss::DefaultEvalMetric();
   }
+  // 转换结果依然保存在 io_preds 中
   void PredTransform(HostDeviceVector<bst_float> *io_preds) override {
     std::vector<bst_float> &preds = io_preds->data_h();
     const bst_omp_uint ndata = static_cast<bst_omp_uint>(preds.size());
