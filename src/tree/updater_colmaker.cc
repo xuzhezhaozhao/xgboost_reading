@@ -585,7 +585,7 @@ class ColMaker: public TreeUpdater {
                     constraints_[nid].CalcSplitGain(
                         param, param.monotone_constraints[fid], c, e.stats) -
                     snode[nid].root_gain);
-              } else
+              } else {
                 loss_chg = static_cast<bst_float>(
                     constraints_[nid].CalcSplitGain(
                         param, param.monotone_constraints[fid], e.stats, c) -
