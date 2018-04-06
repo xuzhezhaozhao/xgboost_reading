@@ -58,11 +58,15 @@ void SimpleDMatrix::InitColAccess(const std::vector<bool> &enabled,
   if (this->HaveColAccess(sorted)) return;
   col_iter_.sorted = sorted;
   col_iter_.cpages_.clear();
+    std::cout << "SimpleDMatrix::InitColAccess::max_row_perbatch= " << max_row_perbatch << std::endl;
+    std::cout << "SimpleDMatrix::InitColAccess::info::num_row = " << info().num_row << std::endl;
   if (info().num_row < max_row_perbatch) {
+    std::cout << "SimpleDMatrix::InitColAccess make one batch"<< std::endl;
     std::unique_ptr<SparsePage> page(new SparsePage());
     this->MakeOneBatch(enabled, pkeep, page.get(), sorted);
     col_iter_.cpages_.push_back(std::move(page));
   } else {
+    std::cout << "SimpleDMatrix::InitColAccess make many batch"<< std::endl;
     this->MakeManyBatch(enabled, pkeep, max_row_perbatch, sorted);
   }
   // setup col-size

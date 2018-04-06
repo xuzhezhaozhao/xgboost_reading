@@ -73,6 +73,7 @@ class TreeModel {
   /*! \brief data type to indicate split condition */
   typedef TNodeStat  NodeStat;
   /*! \brief auxiliary statistics of node to help tree building */
+  // RegTree 中类型为 float, 小于往左，大于往右
   typedef TSplitCond SplitCond;
   /*! \brief tree node */
   class Node {
@@ -95,6 +96,7 @@ class TreeModel {
       return this->default_left() ? this->cleft() : this->cright();
     }
     /*! \brief feature index of split condition */
+    // 当前节点的索引值
     inline unsigned split_index() const {
       return sindex_ & ((1U << 31) - 1U);
     }
@@ -111,6 +113,7 @@ class TreeModel {
       return (this->info_).leaf_value;
     }
     /*! \return get split condition of the node */
+    // RegTree 中类型为 float, 小于这个值往左走，大于这个值往右走
     inline TSplitCond split_cond() const {
       return (this->info_).split_cond;
     }
@@ -405,6 +408,7 @@ struct RTreeNodeStat {
   /*! \brief loss change caused by current split */
   bst_float loss_chg;
   /*! \brief sum of hessian values, used to measure coverage of data */
+  // TODO 计算节点mean value 时用到了
   bst_float sum_hess;
   /*! \brief weight of current node */
   bst_float base_weight;
@@ -442,6 +446,7 @@ class RegTree: public TreeModel<bst_float, RTreeNodeStat> {
      * \brief initialize the vector with size vector
      * \param size The size of the feature vector.
      */
+     // 实际特征维度比这个值大时会被丢弃
     inline void Init(size_t size);
     /*!
      * \brief fill the vector with sparse vector
@@ -480,6 +485,7 @@ class RegTree: public TreeModel<bst_float, RTreeNodeStat> {
       bst_float fvalue;
       int flag;
     };
+    // 稠密向量，索引与特征维度一致
     std::vector<Entry> data;
   };
   /*!
@@ -488,6 +494,7 @@ class RegTree: public TreeModel<bst_float, RTreeNodeStat> {
    * \param root_id starting root index of the instance
    * \return the leaf index of the given feature
    */
+  // 根据节点分裂条件找到对应输入分类到大叶子节点
   inline int GetLeafIndex(const FVec& feat, unsigned root_id = 0) const;
   /*!
    * \brief get the prediction of regression tree, only accepts dense feature vector
@@ -495,6 +502,7 @@ class RegTree: public TreeModel<bst_float, RTreeNodeStat> {
    * \param root_id starting root index of the instance
    * \return the leaf index of the given feature
    */
+  // 返回叶子节点大值
   inline bst_float Predict(const FVec& feat, unsigned root_id = 0) const;
   /*!
    * \brief calculate the feature contributions (https://arxiv.org/abs/1706.06060) for the tree
@@ -557,6 +565,7 @@ class RegTree: public TreeModel<bst_float, RTreeNodeStat> {
   /*!
    * \brief calculate the mean value for each node, required for feature contributions
    */
+  // TODO 跟算法有关?
   inline void FillNodeMeanValues();
 
  private:
@@ -730,6 +739,7 @@ inline bst_float UnwoundPathSum(const PathElement *unique_path, unsigned unique_
 }
 
 // recursive computation of SHAP values for a decision tree
+// 参考论文: https://arxiv.org/pdf/1706.06060.pdf
 inline void RegTree::TreeShap(const RegTree::FVec& feat, bst_float *phi,
                               unsigned node_index, unsigned unique_depth,
                               PathElement *parent_unique_path, bst_float parent_zero_fraction,

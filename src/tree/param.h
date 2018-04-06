@@ -49,6 +49,7 @@ struct TrainParam : public dmlc::Parameter<TrainParam> {
   // default=0 means no constraint on weight delta
   float max_delta_step;
   // whether we want to do subsample
+  // 行采样
   float subsample;
   // whether to subsample columns each split, in each level
   float colsample_bylevel;
@@ -238,6 +239,7 @@ XGBOOST_DEVICE inline T CalcGainGivenWeight(const TrainingParams &p, T sum_grad,
 }
 
 // calculate the cost of loss function
+// 增益公式，使用了权重 w 的 L1 正则项
 template <typename TrainingParams, typename T>
 XGBOOST_DEVICE inline T CalcGain(const TrainingParams &p, T sum_grad, T sum_hess) {
   if (sum_hess < p.min_child_weight)
@@ -250,6 +252,7 @@ XGBOOST_DEVICE inline T CalcGain(const TrainingParams &p, T sum_grad, T sum_hess
              (sum_hess + p.reg_lambda);
     }
   } else {
+    // TODO ???
     T w = CalcWeight(p, sum_grad, sum_hess);
     T ret = sum_grad * w + T(0.5) * (sum_hess + p.reg_lambda) * Sqr(w);
     if (p.reg_alpha == 0.0f) {
@@ -273,6 +276,7 @@ XGBOOST_DEVICE inline T CalcGain(const TrainingParams &p, T sum_grad, T sum_hess
 }
 
 // calculate weight given the statistics
+// 权重公式，使用了 L1 正则项
 template <typename TrainingParams, typename T>
 XGBOOST_DEVICE inline T CalcWeight(const TrainingParams &p, T sum_grad,
                                T sum_hess) {
@@ -301,8 +305,10 @@ XGBOOST_DEVICE inline float CalcWeight(const TrainingParams &p, gpair_t sum_grad
 /*! \brief core statistics used for tree construction */
 struct XGBOOST_ALIGNAS(16) GradStats {
   /*! \brief sum gradient statistics */
+  // 一阶导
   double sum_grad;
   /*! \brief sum hessian statistics */
+  // 二阶导
   double sum_hess;
   /*!
    * \brief whether this is simply statistics and we only need to call
@@ -341,7 +347,7 @@ struct XGBOOST_ALIGNAS(16) GradStats {
     return xgboost::tree::CalcWeight(param, sum_grad, sum_hess);
   }
   /*! \brief calculate gain of the solution */
-template <typename param_t>
+  template <typename param_t>
   inline double CalcGain(const param_t& param) const {
     return xgboost::tree::CalcGain(param, sum_grad, sum_hess);
   }
@@ -464,6 +470,7 @@ template <typename param_t>
  */
 struct SplitEntry {
   /*! \brief loss change after split this node */
+  // 即分裂产生的增益
   bst_float loss_chg;
   /*! \brief split index */
   unsigned sindex;

@@ -19,10 +19,12 @@ namespace tree {
 DMLC_REGISTRY_FILE_TAG(updater_colmaker);
 
 /*! \brief column-wise update to construct a tree */
+// TConstraint 定义在 tree/param.h 中
 template<typename TStats, typename TConstraint>
 class ColMaker: public TreeUpdater {
  public:
   void Init(const std::vector<std::pair<std::string, std::string> >& args) override {
+    std::cout << "init colmaker" << std::endl;
     param.InitAllowUnknown(args);
   }
 
@@ -32,6 +34,7 @@ class ColMaker: public TreeUpdater {
     TStats::CheckInfo(dmat->info());
     // rescale learning rate according to size of trees
     float lr = param.learning_rate;
+    std::cout << "ColMaker::trees.size() = " << trees.size() << std::endl;
     param.learning_rate = lr / trees.size();
     TConstraint::Init(&param, dmat->info().num_col);
     // build tree
@@ -67,8 +70,10 @@ class ColMaker: public TreeUpdater {
     /*! \brief statics for node entry */
     TStats stats;
     /*! \brief loss of this node, without split */
+    // 未分裂叶子节点的增益 gain
     bst_float root_gain;
     /*! \brief weight calculated related to current data */
+    // 就是公式中的权重 w
     bst_float weight;
     /*! \brief current best solution */
     SplitEntry best;
@@ -119,9 +124,11 @@ class ColMaker: public TreeUpdater {
           << "ColMaker: can only grow new tree";
       const std::vector<unsigned>& root_index = fmat.info().root_index;
       const RowSet& rowset = fmat.buffered_rowset();
+      std::cout << "Builder::InitData::rowset.size = " << rowset.size() << std::endl;
       {
         // setup position
         position.resize(gpair.size());
+        std::cout << "Builder::InitData::root_index.size = " << root_index.size() << std::endl;
         if (root_index.size() == 0) {
           for (size_t i = 0; i < rowset.size(); ++i) {
             position[rowset[i]] = 0;
@@ -152,8 +159,10 @@ class ColMaker: public TreeUpdater {
       {
         // initialize feature index
         unsigned ncol = static_cast<unsigned>(fmat.info().num_col);
+        std::cout << "Builder::InitData::ncol = " << ncol << std::endl;
         for (unsigned i = 0; i < ncol; ++i) {
           if (fmat.GetColSize(i) != 0) {
+            //std::cout << "Builder::InitData::colsize(" << i << ") = " << fmat.GetColSize(i) << std::endl;
             feat_index.push_back(i);
           }
         }
@@ -176,7 +185,9 @@ class ColMaker: public TreeUpdater {
       }
       {
         // expand query
+        // TODO 写反了吧？
         qexpand_.reserve(256); qexpand_.clear();
+        std::cout << "Builder::InitData::num_roots = " << tree.param.num_roots << std::endl;
         for (int i = 0; i < tree.param.num_roots; ++i) {
           qexpand_.push_back(i);
         }
@@ -190,18 +201,22 @@ class ColMaker: public TreeUpdater {
                             const std::vector<bst_gpair>& gpair,
                             const DMatrix& fmat,
                             const RegTree& tree) {
+      std::cout << "Builder::InitNewNode::gpair.size = " << gpair.size() << std::endl;
       {
         // setup statistics space for each tree node
         for (size_t i = 0; i < stemp.size(); ++i) {
           stemp[i].resize(tree.param.num_nodes, ThreadEntry(param));
         }
+        std::cout << "Builder::InitData::num_nodes = " << tree.param.num_nodes << std::endl;
         snode.resize(tree.param.num_nodes, NodeEntry(param));
         constraints_.resize(tree.param.num_nodes);
       }
+      // 获取训练数据
       const RowSet &rowset = fmat.buffered_rowset();
       const MetaInfo& info = fmat.info();
       // setup position
       const bst_omp_uint ndata = static_cast<bst_omp_uint>(rowset.size());
+      // 并行将每个节点划分到各个叶子节点上, 累积一阶导和二阶导
       #pragma omp parallel for schedule(static)
       for (bst_omp_uint i = 0; i < ndata; ++i) {
         const bst_uint ridx = rowset[i];
@@ -217,6 +232,7 @@ class ColMaker: public TreeUpdater {
           stats.Add(stemp[tid][nid].stats);
         }
         // update node statistics
+        // 更新叶子节点的数据
         snode[nid].stats = stats;
       }
       // setup constraints before calculating the weight
@@ -541,7 +557,9 @@ class ColMaker: public TreeUpdater {
         temp[qexpand[j]].stats.Clear();
       }
       // left statistics
+      // 分裂后左节点统计量
       TStats c(param);
+      // col batch 已经按feature value 排好序
       for (const ColBatch::Entry *it = begin; it != end; it += d_step) {
         const bst_uint ridx = it->index;
         const int nid = position[ridx];
@@ -549,6 +567,7 @@ class ColMaker: public TreeUpdater {
         // start working
         const bst_float fvalue = it->fvalue;
         // get the statistics of nid
+        // 分裂后右节点统计量
         ThreadEntry &e = temp[nid];
         // test if first hit, this is fine, because we set 0 during init
         if (e.stats.Empty()) {
@@ -566,7 +585,7 @@ class ColMaker: public TreeUpdater {
                     constraints_[nid].CalcSplitGain(
                         param, param.monotone_constraints[fid], c, e.stats) -
                     snode[nid].root_gain);
-              } else {
+              } else
                 loss_chg = static_cast<bst_float>(
                     constraints_[nid].CalcSplitGain(
                         param, param.monotone_constraints[fid], e.stats, c) -
@@ -621,8 +640,11 @@ class ColMaker: public TreeUpdater {
         poption = static_cast<int>(nsize) * 2 < this->nthread ? 1 : 0;
       }
       if (poption == 0) {
+        // 特征间并行方式
+        // 每个线程处理一维特征，遍历数据累计统计量(grad/hess)得到最佳分裂点split_point
         #pragma omp parallel for schedule(dynamic, batch_size)
         for (bst_omp_uint i = 0; i < nsize; ++i) {
+          // feature id
           const bst_uint fid = batch.col_index[i];
           const int tid = omp_get_thread_num();
           const ColBatch::Inst c = batch[i];
@@ -637,6 +659,10 @@ class ColMaker: public TreeUpdater {
           }
         }
       } else {
+        //特征内并行方式
+        //在每个线程里汇总各个线程内分配到的数据样本的统计量(grad/hess);
+        //每个线程输出对应样本整体的统计量，得到一个线程级别统计量数组
+        //在这个组内进行枚举选出最佳分裂点，进一步定位到对应线程的最优分割点
         for (bst_omp_uint i = 0; i < nsize; ++i) {
           this->ParallelFindSplit(batch[i], batch.col_index[i],
                                   fmat, gpair);
@@ -658,8 +684,12 @@ class ColMaker: public TreeUpdater {
             << "colsample_bylevel cannot be zero.";
         feat_set.resize(n);
       }
+      std::cout << "Builder::FindSplit::feat_set.size = " << feat_set.size() << std::endl;
       dmlc::DataIter<ColBatch>* iter = p_fmat->ColIterator(feat_set);
       while (iter->Next()) {
+        std::cout << "Builder::FindSplit::ColBatch::size = " << iter->Value().size << std::endl;
+        std::cout << "Builder::FindSplit::ColBatch::col_data->length = " << iter->Value().col_data->length<< std::endl;
+        // 找到分裂点,有两种并行方式
         this->UpdateSolution(iter->Value(), gpair, *p_fmat);
       }
       // after this each thread's stemp will get the best candidates, aggregate results
@@ -781,16 +811,23 @@ class ColMaker: public TreeUpdater {
     // number of omp thread used during training
     const int nthread;
     // Per feature: shuffle index of each feature index
+    // 过滤掉了实例数为 0 的 feature
     std::vector<bst_uint> feat_index;
     // Instance Data: current node position in the tree of each instance
+    // 用于统计叶子节点的一阶导和二阶导之和, 即公式中的 G 和 H
     std::vector<int> position;
     // PerThread x PerTreeNode: statistics for per thread construction
+    // 第二维为树节点数目
+    // openmp 线程的统计数据, 包括 G, H, 最后把各个线程的数据累加就是最后的结果
     std::vector< std::vector<ThreadEntry> > stemp;
     /*! \brief TreeNode Data: statistics for each constructed node */
+    // 对应qexpand_中节点的数据
     std::vector<NodeEntry> snode;
     /*! \brief queue of nodes to be expanded */
+    // 存储每次探索出候选待分裂的叶子节点，初始化为root节点
     std::vector<int> qexpand_;
     // constraint value
+    // 大小为当前节点数目
     std::vector<TConstraint> constraints_;
   };
 };
@@ -958,8 +995,10 @@ class TreeUpdaterSwitch : public TreeUpdater {
     }
     if (inner_.get() == nullptr) {
       if (monotone_) {
+        std::cout << "construct use ValueConstraint" << std::endl;
         inner_.reset(new ColMaker<GradStats, ValueConstraint>());
       } else {
+        std::cout << "construct use NoConstraint" << std::endl;
         inner_.reset(new ColMaker<GradStats, NoConstraint>());
       }
     }

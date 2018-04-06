@@ -119,6 +119,7 @@ struct MetaInfo {
 /*! \brief read-only sparse instance batch in CSR format */
 struct SparseBatch {
   /*! \brief an entry of sparse vector */
+  // index:value 对
   struct Entry {
     /*! \brief feature index */
     bst_uint index;
@@ -139,6 +140,7 @@ struct SparseBatch {
   };
 
   /*! \brief an instance of sparse vector in the batch */
+  // 单行数据, 稀疏存储格式, index:value 对, 特征数为 length,
   struct Inst {
     /*! \brief pointer to the elements*/
     const Entry *data;
@@ -175,8 +177,11 @@ struct RowBatch : public SparseBatch {
  * \brief read-only column batch, used to access columns,
  * the columns are not required to be continuous
  */
+// 按列存储索引
 struct ColBatch : public SparseBatch {
+  // batch size 继承自父类
   /*! \brief column index of each columns in the data */
+  // feature id
   const bst_uint *col_index;
   /*! \brief pointer to the column data */
   const Inst *col_data;
@@ -206,6 +211,7 @@ class DataSource : public dmlc::DataIter<RowBatch> {
  * \brief A vector-like structure to represent set of rows.
  * But saves the memory when all rows are in the set (common case in xgb)
  */
+// 保存索引值
 struct RowSet {
  public:
   /*! \return i-th row index */
@@ -274,7 +280,7 @@ class DMatrix {
    * \param subsample subsample ratio when generating column access.
    * \param max_row_perbatch auxiliary information, maximum row used in each column batch.
    *         this is a hint information that can be ignored by the implementation.
-   * \param sorted If column features should be in sorted order           
+   * \param sorted If column features should be in sorted order
    * \return Number of column blocks in the column access.
    */
 
