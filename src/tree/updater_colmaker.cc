@@ -489,6 +489,7 @@ class ColMaker: public TreeUpdater {
       for (it = begin; it != align_end; it += align_step) {
         const ColBatch::Entry *p;
         for (i = 0, p = it; i < kBuffer; ++i, p += d_step) {
+          std::cout << "Builder::EnumerateSplitCacheOpt::p->index = " << p->index << std::endl;
           buf_position[i] = position[p->index];
           buf_gpair[i] = gpair[p->index];
         }
@@ -502,6 +503,7 @@ class ColMaker: public TreeUpdater {
       }
       // finish up the ending piece
       for (it = align_end, i = 0; it != end; ++i, it += d_step) {
+        std::cout << "Builder::EnumerateSplitCacheOpt::it->index = " << it->index << std::endl;
         buf_position[i] = position[it->index];
         buf_gpair[i] = gpair[it->index];
       }
@@ -548,9 +550,11 @@ class ColMaker: public TreeUpdater {
                                std::vector<ThreadEntry> &temp) { // NOLINT(*)
       // use cacheline aware optimization
       if (TStats::kSimpleStats != 0 && param.cache_opt != 0) {
+        std::cout << "split cache hit" << std::endl;
         EnumerateSplitCacheOpt(begin, end, d_step, fid, gpair, temp);
         return;
       }
+        std::cout << "split cache not hit" << std::endl;
       const std::vector<int> &qexpand = qexpand_;
       // clear all the temp statistics
       for (size_t j = 0; j < qexpand.size(); ++j) {
@@ -562,6 +566,7 @@ class ColMaker: public TreeUpdater {
       // col batch 已经按feature value 排好序
       for (const ColBatch::Entry *it = begin; it != end; it += d_step) {
         const bst_uint ridx = it->index;
+        std::cout << "Builde::EnumerateSplit::ridx = " << ridx << std::endl;
         const int nid = position[ridx];
         if (nid < 0) continue;
         // start working
@@ -640,6 +645,7 @@ class ColMaker: public TreeUpdater {
         poption = static_cast<int>(nsize) * 2 < this->nthread ? 1 : 0;
       }
       if (poption == 0) {
+        std::cout << "poption = 0" << std::endl;
         // 特征间并行方式
         // 每个线程处理一维特征，遍历数据累计统计量(grad/hess)得到最佳分裂点split_point
         #pragma omp parallel for schedule(dynamic, batch_size)
@@ -766,6 +772,7 @@ class ColMaker: public TreeUpdater {
           fsplits.push_back(tree[nid].split_index());
         }
       }
+      // 当前数据已经前一次分裂的节点上，所以这一次只需要往下走一层
       std::sort(fsplits.begin(), fsplits.end());
       fsplits.resize(std::unique(fsplits.begin(), fsplits.end()) - fsplits.begin());
       dmlc::DataIter<ColBatch> *iter = p_fmat->ColIterator(fsplits);

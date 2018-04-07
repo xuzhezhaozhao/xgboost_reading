@@ -122,6 +122,7 @@ struct SparseBatch {
   // index:value 对
   struct Entry {
     /*! \brief feature index */
+    // ColBatch 中是 row index
     bst_uint index;
     /*! \brief feature value */
     bst_float fvalue;
@@ -156,6 +157,7 @@ struct SparseBatch {
   };
 
   /*! \brief batch size */
+  // ColBatch 中对应列数
   size_t size;
 };
 
